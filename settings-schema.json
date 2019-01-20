@@ -1,0 +1,31 @@
+{
+  "server": {
+    "type" : "entry",
+    "default" : "",
+    "description" : "OctoPrint URL"
+  },
+  "api_key": {
+    "type" : "entry",
+    "default" : "",
+    "description" : "API key"
+  },
+  "basic_auth_user": {
+    "type" : "entry",
+    "default" : "",
+    "description": "Credentials for basic authentication"
+  },
+  "basic_auth_password": {
+    "type" : "entry",
+    "default" : "",
+    "description": "Credentials for basic authentication"
+  },
+  "refresh_rate": {
+    "type" : "spinbutton",
+    "default" : 5,
+    "min" : 1,
+    "max" : 60,
+    "units" : "Seconds",
+    "step" : 1,
+    "description" : "Refresh rate for requests"
+  }
+}

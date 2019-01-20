@@ -1,0 +1,9 @@
+{
+    "uuid": "octoprint@fehlfarbe",
+    "name": "Octoprint Progress",
+    "version": "0.1",
+    "description": "Simple OctoPrint progress applet",
+    "icon": "preferences-desktop-accessibility",
+    "max-instances": "-1",
+    "multiversion": true
+}
