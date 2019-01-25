@@ -4,6 +4,8 @@ const Lang = imports.lang;
 const Mainloop = imports.mainloop;
 const PopupMenu = imports.ui.popupMenu;
 const St = imports.gi.St;
+const Gio = imports.gi.Gio;
+const Gtk = imports.gi.Gtk;
 const Settings = imports.ui.settings;
 const Util = imports.misc.util;
 const Soup = imports.gi.Soup;
@@ -15,6 +17,22 @@ function log(msg){
     global.log("[octoprint@fehlfarbe] " + msg);
 }
 
+var PopupImageMenuItem = class PopupImageMenuItem extends PopupMenu.PopupBaseMenuItem {
+
+    /**
+     * _init:
+     * @text (string): text to display in the label
+     * @iconName (string): name of the icon used
+     * @iconType (St.IconType): the type of icon (usually #St.IconType.SYMBOLIC
+     * or #St.IconType.FULLCOLOR)
+     * @params (JSON): parameters to pass to %PopupMenu.PopupBaseMenuItem._init
+     */
+    _init (icon, params) {
+        super._init.call(this, params);
+        this._icon = icon;
+        this.addActor(this._icon);
+    }
+}
 
 function MyApplet(metadata, orientation, panelHeight, instance_id) {
     this._init(metadata, orientation, panelHeight, instance_id);
@@ -30,8 +48,24 @@ MyApplet.prototype = {
         this.menuManager = new PopupMenu.PopupMenuManager(this);
         this.menu = new Applet.AppletPopupMenu(this, orientation);
         let section = new PopupMenu.PopupMenuSection('PopupMenuSection');
-        let item = new PopupMenu.PopupMenuItem('');
-        this.menuLabel = new St.Label({text: 'No connection'});
+
+        // let item = new PopupMenu.PopupMenuItem('');
+        // this.menuLabel = new St.Label({text: 'No connection'});
+        // this.menuLabelTemp = new St.Label({text: 'No connection'});
+
+        this.itemFile = new PopupMenu.PopupIconMenuItem("System state", "media-playback-start", St.IconType.SYMBOLIC);
+        this.menuFile = new St.Icon();
+
+        this.itemTempBed = new PopupMenu.PopupIconMenuItem("Heatbed", "media-playback-start", St.IconType.SYMBOLIC);
+        this.menuTempBed = new St.Icon();
+        this.itemTempTool0 = new PopupMenu.PopupIconMenuItem("Tool0", "media-playback-start", St.IconType.SYMBOLIC);
+        this.menuTempTool0 = new St.Icon();
+
+        this.menuLivestream = new St.Icon({style_class: "liveview"});
+        this.itemLivestream = new PopupImageMenuItem(this.menuLivestream);
+        // this.menuLivestream = new St.Icon();
+        //this.itemLivestream._icon = this.menuLivestream;
+        this.menuLivestream.set_icon_size(320);
 
         // setup settings
         this.settings = new Settings.AppletSettings(this, UUID, instance_id);
@@ -46,39 +80,56 @@ MyApplet.prototype = {
         this.state_printer = undefined;
 
         // start status update
-		this.autoupdate();
+        this.autoupdateJob();
+        this.autoupdatePrinter();
 
         // popup menu
-        item.addActor(this.menuLabel);
-        section.addMenuItem(item);
+        // item.addActor(this.menuLabel);
+        // item.addActor(this.menuLabelTemp);
+        this.itemFile.addActor(this.menuFile);
+        this.itemTempBed.addActor(this.menuTempBed);
+        this.itemTempTool0.addActor(this.menuTempTool0);
+        // this.itemLivestream.addActor(this.menuLivestream);
+        section.addMenuItem(this.itemFile);
+        section.addMenuItem(this.itemTempBed);
+        section.addMenuItem(this.itemTempTool0);
+        section.addMenuItem(this.itemLivestream);
+        
+        // let item_p = new PopupMenu.PopupMenuItem('');
+        // this.progress = new Gtk.ProgressBar();
+        // item_p.addActor(this.progress);
+        // section.addMenuItem(item_p);
+
         this.menu.addMenuItem(section);
-        this.menuManager.addMenu(this.menu);
+        this.menuManager.addMenu(this.menu);        
     },
 
     on_applet_clicked: function() {
         log("clicked Applet");
-        if (!this.menu.isOpen && this.resp != undefined) {
+        if (!this.menu.isOpen) {
             if(this.menu.setCustomStyleClass) {
                 this.menu.setCustomStyleClass("click");
             }
             else if(this.menu.actor.add_style_class_name) {
                 this.menu.actor.add_style_class_name("click");
             }
-            // let cmd = (this.menuScript && this.menuScript.trim()) ? this.menuScript : this.script1;
-            // let cmd_output = this.spawn_sync(cmd);
-            // let cmd_stdout = cmd_output[0] ? cmd_output[1].toString() : _("script error");
         }
+
+        if(this.livestream_enable){
+            this.autoupdateImage();
+        }
+        
         this.menu.toggle();
     },
 
     on_settings_changed: function () {
-        global.logError("Settings changed");
         this.bind_settings();
-        this.autoupdate();
+        this.autoupdateJob();
     },
 
     bind_settings: function () {
-        for (let str of ["server", "basic_auth_user", "basic_auth_password", "api_key", "refresh_rate"]) {
+        for (let str of ["server", "basic_auth_enable", "basic_auth_user", "basic_auth_password", "api_key", 
+                         "livestream_enable", "livestream_url", "livestream_refresh_rate", "refresh_rate"]) {
             this.settings.bindProperty(Settings.BindingDirection.IN,
                 str,
                 str,
@@ -92,14 +143,14 @@ MyApplet.prototype = {
     },
 
     printerURL(){
-        return this.server + "api/printer?apikey=" + this.api_key;
+        return this.server + "/api/printer?apikey=" + this.api_key;
     },
 
     loadJsonAsync: function loadJsonAsync(url, callback) {
         let context = this
         let message = Soup.Message.new('GET', url)
         // add basic auth
-        if(this.basic_auth_user && this.basic_auth_password){
+        if(this.basic_auth_enable && this.basic_auth_user && this.basic_auth_password){
             let auth =new Soup.AuthBasic();
             auth.authenticate(this.basic_auth_user, this.basic_auth_password);
             let auth_header = auth.get_authorization(message);
@@ -111,7 +162,7 @@ MyApplet.prototype = {
         })
     },
 
-    autoupdate: function() {
+    autoupdateJob: function() {
         if(!this.server){
             this.update_textfield("Please setup OctoPrint URL");
             return;
@@ -120,8 +171,31 @@ MyApplet.prototype = {
             let error = undefined;
             let error_txt = undefined;
             if(message.status_code == 200){
-                // log("got JSON: " + json);
                 this.state_job = JSON.parse(message.response_body.data);
+            } else {
+                error = message.status_code;
+                error_txt = message.response_body.data;
+            }
+            this.update_textfield(error);
+            this.update_popup(error_txt);
+            // log("Waiting " + this.refresh_rate + "s");
+            Mainloop.timeout_add_seconds(this.refresh_rate, Lang.bind(this, this.autoupdateJob));
+        });
+    },
+
+    autoupdatePrinter: function() {
+        if(!this.server){
+            this.update_textfield("Please setup OctoPrint URL");
+            return;
+        }
+        this.loadJsonAsync(this.printerURL(), function(message) {
+            // log("got printer info");
+            // log(message.response_body.data);
+            let error = undefined;
+            let error_txt = undefined;
+            if(message.status_code == 200){
+                // log("got JSON: " + json);
+                this.state_printer = JSON.parse(message.response_body.data);
             } else {
                 // log("Error code" + message.status_code);
                 // log("Error body" + message.response_body.data);
@@ -130,26 +204,59 @@ MyApplet.prototype = {
             }
             this.update_textfield(error);
             this.update_popup(error_txt);
-            // log("Waiting " + this.refresh_rate + "s");
-            Mainloop.timeout_add_seconds(this.refresh_rate, Lang.bind(this, this.autoupdate));
+            Mainloop.timeout_add_seconds(this.refresh_rate, Lang.bind(this, this.autoupdatePrinter));
         });
+    },
+
+    autoupdateImage: function() {
+        this.menuLivestream.gicon = Gio.icon_new_for_string(this.livestream_url + "&t=" + Math.floor(Math.random()*10000.0));
+        // this.itemLivestream.setIconName(Gio.icon_new_for_string(this.livestream_url + "&t=" + Math.floor(Math.random()*10000.0)));
+        if(!this.menu.isOpen){
+            Mainloop.timeout_add_seconds(this.livestream_refresh_rate, Lang.bind(this, this.autoupdateImage));
+        }
     },
 
     update_popup: function(error){
         let job = this.state_job;
-        let text = "Connection error " + error;
+        let printer = this.state_printer;
+        let text = "";
+        if(error){
+            text = "Connection error " + error;
+        }
+
+        // add job state
         if(job && !error){
             switch(job["state"]){
                 case "Printing":
-                    let file = job["job"]["file"]["name"];
-                    text = "Printing file: " + file;
+                    text = job["job"]["file"]["name"];
                     break;
                 default:
-                    text = "Current state: " + job["state"];
+                    text = "Current state " + job["state"];
             }
+            this.itemFile.label.text = text;
+            this.itemFile.setActive(true);
+        } else {
+            this.itemFile.setActive(false);
         }
 
-        this.menuLabel.set_text(text);
+        // this.menuLabel.set_text(text);
+
+        // add printer state
+        if(printer && !error){
+            // text = "\n\nTemperatures:\n"
+            //      + "---------------\n"
+            // for(var key in printer["temperature"]) {
+            //     text += key + ":\t"
+            //          + printer["temperature"][key]["actual"] + " / "
+            //          + printer["temperature"][key]["target"] + " °C\n";
+            // }
+            this.itemTempBed.label.text = printer["temperature"]["bed"]["actual"] + " / "
+                                      + printer["temperature"]["bed"]["target"] + " °C";
+            this.itemTempTool0.label.text = printer["temperature"]["tool0"]["actual"] + " / "
+                                      + printer["temperature"]["tool0"]["target"] + " °C";
+        }
+        
+        
     },
 
     update_textfield: function(error) {;

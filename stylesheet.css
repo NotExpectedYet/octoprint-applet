@@ -1,0 +1,17 @@
+.click {
+    font-family: Monospace;
+    color: #fff;
+    border:0px;
+    width: 320px;
+    max-width: 320px;
+    word-wrap:break-word;
+}
+
+.liveview {
+    width: 320px;
+    height: 240px;
+    /* margin: 0px auto;
+    padding: 0px; */
+    transform: rotate(180deg);
+    text-align: left;
+}

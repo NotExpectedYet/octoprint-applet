@@ -9,15 +9,43 @@
     "default" : "",
     "description" : "API key"
   },
+  "basic_auth_enable": {
+		"type": "checkbox",
+		"default": false,
+		"description": "Enable HTTP Basic Authentication"
+	},
   "basic_auth_user": {
     "type" : "entry",
     "default" : "",
-    "description": "Credentials for basic authentication"
+    "dependency": "basic_auth_enable",
+    "description": "Username for basic authentication"
   },
   "basic_auth_password": {
     "type" : "entry",
     "default" : "",
-    "description": "Credentials for basic authentication"
+    "dependency": "basic_auth_enable",
+    "description": "Password for basic authentication"
+  },
+  "livestream_enable": {
+		"type": "checkbox",
+		"default": false,
+		"description": "Enable Liveview (snapshots) in PopupMenu"
+  },
+  "livestream_url": {
+    "type" : "entry",
+    "default" : "",
+    "dependency": "livestream_enable",
+    "description": "Liveview URL"
+  },
+  "livestream_refresh_rate": {
+    "type" : "spinbutton",
+    "dependency": "livestream_enable",
+    "default" : 5,
+    "min" : 1,
+    "max" : 30,
+    "units" : "Seconds",
+    "step" : 1,
+    "description" : "Refresh rate for snapshots"
   },
   "refresh_rate": {
     "type" : "spinbutton",
