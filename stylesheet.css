@@ -10,8 +10,24 @@
 .liveview {
     width: 320px;
     height: 240px;
-    /* margin: 0px auto;
-    padding: 0px; */
-    transform: rotate(180deg);
+    /* transform: rotate(180deg); */
     text-align: left;
+}
+
+.hidden {
+    width: 0px;
+    height: 0px;
+    visibility: hidden;
+}
+
+.hotend {
+    background-image: url("icons/extruder_temperature_icon_24.png");
+}
+
+.heatbed {
+    background-image: url("icons/heated_bed_icon_24.png");
+}
+
+.printer {
+    background-image: url("icons/printer_icon_24.png");
 }

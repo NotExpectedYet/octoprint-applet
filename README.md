@@ -21,3 +21,6 @@ Please open a Issue and append your `.xsession-errors` logfile ( `cat ~/.xsessio
 - add to official Cinnamon applet repo
 - add webcam image for popup
 - add icon
+
+## Credits
+- 3D printer icons: [Sam Baines](https://icons-for-free.com/icon-bed_bed_plate_heated_plate_icon_981316/)
