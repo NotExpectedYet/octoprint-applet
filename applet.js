@@ -304,6 +304,15 @@ MyApplet.prototype = {
                     let m = Math.floor((timeleft / 60.0) % 60);
                     let s = Math.floor(timeleft % 60);
                     text = compl + " | " + h + "h" + m + "m" + s + "s";
+                    let printer = this.state_printer;
+                    if(printer){
+                        if(printer.temperature.bed){
+                            text += " | 🌡B: " + printer.temperature.bed.actual;
+                        }
+                        if(printer.temperature.tool0){
+                            text += " | 🌡T0: " + printer.temperature.tool0.actual;
+                        }
+                    }
                     break;
                 case "Cancelling":
                     text = "Canceling job...";
