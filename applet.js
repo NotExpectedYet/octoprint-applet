@@ -291,40 +291,45 @@ MyApplet.prototype = {
 
     update_textfield: function(error) {;
         let job = this.state_job;
-        let text = "Connection Error " + error;
+        let text = "❌ Connection Error " + error;
         if(job && !error){
             switch(job["state"].split(" ")[0]){
                 case "Operational":
-                    text = "Octoprint is Ready";
+                    text = "🐙 Octoprint is Ready 🐙";
                     break;
                 case "Printing":
                     let compl = Math.round(job["progress"]["completion"]*100)/100 + "%";
                     let timeleft = job["progress"]["printTimeLeft"];
                     let h = Math.floor((timeleft / 3600.0));
                     let m = Math.floor((timeleft / 60.0) % 60);
+                    if(m < 10)
+                        m = "0" + m;
                     let s = Math.floor(timeleft % 60);
-                    text = compl + " | " + h + "h" + m + "m" + s + "s";
+                    if(s < 10){
+                        s = "0" + s;
+                    }
+                    text = "🖨️ " + compl + " ⏳ " + h + ":" + m + ":" + s;
                     let printer = this.state_printer;
                     if(printer){
                         if(printer.temperature.bed){
-                            text += " | 🌡B: " + printer.temperature.bed.actual;
+                            text += " 🌡️ B: " + printer.temperature.bed.actual;
                         }
                         if(printer.temperature.tool0){
-                            text += " | 🌡T0: " + printer.temperature.tool0.actual;
+                            text += " 🌡️ T0: " + printer.temperature.tool0.actual;
                         }
                     }
                     break;
-                case "Cancelling":
+                case "❌ Cancelling":
                     text = "Canceling job...";
                     break;
-                case "Pausing":
+                case "⏯️ Pausing":
                     text = "Pausing...";
                     break;
-                case "Paused":
+                case "⏸️ Paused":
                     text = "Paused";
                     break;
                 case "Offline":
-                    text = "Printer offline";
+                    text = "🔌 Printer offline";
                     break;
                 default:
                     text = job["state"].length > 10 ? job["state"].substring(0,10) + "..." : job["state"];
